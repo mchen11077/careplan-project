@@ -62,7 +62,3 @@ The tests cover successful generation and download, validation, duplicate handli
 ## Project scope
 
 The original design draft is retained in design_doc.md. The local UI keeps a single intake screen; the API also accepts clinic JSON and pharmacy XML through shared adapters. See aws/README.md for Terraform deployment, IAM verification, and DLQ replay. Patient records are entered as text. Authentication, PDF parsing, and external registries remain future integration work. The draft's client background is historical design context and does not establish a deployment or affiliation.
-
-## Resume alignment
-
-Django and React, three shared intake adapters, Claude generation, Terraform, Lambda, API Gateway, DynamoDB, SQS/DLQ, IAM probing and timed recovery scripts are included. Historical timing claims and their supporting or missing logs are documented in evidence/README.md. Run new measurements before asserting timings for this version.

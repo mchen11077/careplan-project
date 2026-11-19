@@ -54,8 +54,8 @@ The worker preserves the last error when replay completes. Completed orders skip
 
 If the initial database write succeeds but queue delivery fails, the submission returns 503 with the order ID. An operator can resend {"order_id":"..."} to the jobs queue. The duplicate guard prevents a second order from being created.
 
-## Timing evidence
+## Benchmarking
 
-Run scripts/benchmark.py with --aws to capture submission latency, worker generation duration, and observed end-to-end duration. Run without --aws for the Django version. Polling and queue wait are included in observed completion time. See evidence/README.md for what the historical logs actually establish.
+Run scripts/benchmark.py with --aws to capture submission latency, worker generation duration, and observed end-to-end duration. Run without --aws for the Django version. Polling and queue wait are included in observed completion time.
 
 After your demonstration, remove resources with terraform -chdir=aws/infra destroy.
