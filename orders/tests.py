@@ -62,3 +62,16 @@ class OrderTests(TestCase):
         from django.test import Client
         response = Client(enforce_csrf_checks=True).post("/api/orders", "{}", content_type="application/json")
         self.assertEqual(response.status_code, 403)
+
+    def test_all_intake_formats(self):
+        from pathlib import Path
+        from django.conf import settings
+        samples = Path(settings.BASE_DIR) / "samples"
+        for source, name, content in [
+            ("web_form", "web_form.json", "application/json"),
+            ("clinic_json", "clinic.json", "application/json"),
+            ("pharma_xml", "pharma.xml", "application/xml"),
+        ]:
+            Order.objects.all().delete()
+            response = self.client.post("/api/orders?source=" + source, (samples / name).read_bytes(), content_type=content)
+            self.assertEqual(response.status_code, 202, response.content)

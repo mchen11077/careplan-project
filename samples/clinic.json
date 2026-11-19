@@ -1,0 +1,18 @@
+{
+  "patient": {
+    "mrn": "123456",
+    "name": {"first": "Jane", "last": "Doe"},
+    "dob": "1960-10-21",
+    "sex": "F",
+    "weightKg": 70,
+    "allergies": ["Codeine"]
+  },
+  "prescriber": {"npi": "1234567893", "fullName": "Dr. Jane Smith"},
+  "rx": {
+    "drug": "IVIG",
+    "diagnosis": {"icd10": "G70.00", "description": "Myasthenia gravis"},
+    "secondaryDiagnoses": ["I10"],
+    "currentMeds": ["Metformin 1000mg PO BID"]
+  },
+  "clinicalNotes": "Progressive weakness over 4 weeks. Referred for IVIG."
+}

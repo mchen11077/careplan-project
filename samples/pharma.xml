@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CarePlanOrder confirmNotDuplicate="false">
+  <Patient mrn="123456" dob="1960-10-21" sex="Female" weightKg="70">
+    <FirstName>Jane</FirstName>
+    <LastName>Doe</LastName>
+    <Allergies>Codeine</Allergies>
+    <HomeMedications>
+      <Medication>Metformin 1000mg PO BID</Medication>
+    </HomeMedications>
+  </Patient>
+  <Prescriber npi="1234567893"><Name>Dr. Jane Smith</Name></Prescriber>
+  <Therapy drug="IVIG">
+    <Diagnosis code="G70.00" primary="true">Myasthenia gravis</Diagnosis>
+    <Diagnosis code="I10"/>
+  </Therapy>
+  <ClinicalNotes>Progressive weakness over 4 weeks. Referred for IVIG.</ClinicalNotes>
+</CarePlanOrder>

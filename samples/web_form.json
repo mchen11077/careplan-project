@@ -1,0 +1,17 @@
+{
+  "patient_mrn": "123456",
+  "patient_first_name": "Jane",
+  "patient_last_name": "Doe",
+  "patient_date_of_birth": "1960-10-21",
+  "patient_sex": "Female",
+  "patient_weight_kg": "70",
+  "patient_allergies": "Codeine",
+  "primary_diagnosis_code": "G70.00",
+  "primary_diagnosis_description": "Myasthenia gravis",
+  "additional_diagnoses": ["I10"],
+  "medication_history": ["Metformin 1000mg PO BID"],
+  "provider_npi": "1234567893",
+  "provider_name": "Dr. Jane Smith",
+  "medication_name": "IVIG",
+  "patient_records": "Progressive weakness over 4 weeks. Referred for IVIG."
+}

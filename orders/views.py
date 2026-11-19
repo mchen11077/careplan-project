@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 from .models import Order, Provider
 from .validation import IntakeError, duplicate_warnings, normalize
+from shared.adapters import get_adapter
 
 
 def serialize(order):
@@ -34,7 +35,20 @@ def orders(request):
     if request.method != "POST":
         return HttpResponse(status=405)
     try:
-        raw = json.loads(request.body)
+        source = request.GET.get("source", "web_form")
+        if source == "web_form":
+            raw = json.loads(request.body)
+            data = normalize(raw)
+            canonical = dict(data)
+            for field in ("additional_diagnoses", "medication_history"):
+                canonical[field] = data[field].splitlines()
+            get_adapter(source).parse(canonical)
+        else:
+            adapted = get_adapter(source).parse(request.body).to_serializer_data()
+            raw = dict(adapted)
+            raw["confirm_warnings"] = raw.pop("confirm_not_duplicate", False)
+            for field in ("additional_diagnoses", "medication_history"):
+                raw[field] = "\n".join(raw[field])
         data = normalize(raw)
     except (ValueError, UnicodeDecodeError) as error:
         return JsonResponse({"error": str(error)}, status=400)

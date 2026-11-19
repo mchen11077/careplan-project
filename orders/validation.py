@@ -33,6 +33,8 @@ def normalize(raw):
         raise IntakeError("Enter a valid date of birth in the past.") from None
     for field in ["patient_records", "medication_history", "additional_diagnoses"]:
         value = raw.get(field, "")
+        if field != "patient_records" and isinstance(value, list) and all(isinstance(item, str) for item in value):
+            value = "\n".join(value)
         if not isinstance(value, str) or len(value) > 12000:
             raise IntakeError(f"{field}: enter text up to 12,000 characters.")
         data[field] = value.strip()

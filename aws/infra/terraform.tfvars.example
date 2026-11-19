@@ -1,0 +1,4 @@
+expected_account_id = "123456789012"
+region = "us-west-2"
+llm_model = "YOUR_AVAILABLE_CLAUDE_MODEL_ID"
+# Supply TF_VAR_anthropic_api_key via the environment.
