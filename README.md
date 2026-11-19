@@ -1,64 +1,131 @@
 # Careplan
 
-A portfolio prototype for drafting pharmacist care plans. Django stores orders and a durable job queue in SQLite. React and TypeScript provide one intake form, order status, draft preview, retry, download, and CSV export.
+An asynchronous care-plan drafting application with structured order intake, background generation, and a review workspace.
+
+**React · TypeScript · Django · Python · SQLite · AWS Lambda · DynamoDB · SQS · Terraform**
+
+## Demo
+
+Submit an order, follow its status, preview the generated draft, and download it for pharmacist review. The screenshot below shows the running application with fictional data and the built-in template generator.
+
+![Order intake and completed care-plan draft](docs/screenshots/draft-preview.jpg)
+
+1. Select **Fill sample** to populate a fictional order.
+2. Select **Generate draft**. The background worker processes the order while the workspace tracks its status.
+3. Open the completed order to review and download the draft. Use **Export orders** for CSV export.
+
+## Features
+
+- Structured patient, medication, diagnosis, and provider intake with field validation.
+- Same-day duplicate prevention, provider-conflict detection, and confirmation for patient identity differences or refills.
+- Durable background jobs with worker leases, delayed retries, and explicit retry after failure.
+- Order history, status polling, draft preview, text download, and CSV export.
+- Shared adapters for web-form JSON, clinic JSON, and pharmacy XML.
+- AWS implementation with API Gateway, Lambda, DynamoDB, SQS, a dead-letter queue, and CloudWatch alarms.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    UI[React / TypeScript] --> API[Django API]
+    API --> DB[(SQLite: orders and jobs)]
+    DB --> Worker[Background worker]
+    Worker --> Generator[Template or Claude]
+    Worker --> DB
+    API --> UI
+```
+
+The local application serves the built frontend through Django. Orders and jobs persist in SQLite; a separate worker claims jobs atomically with a three-minute lease. Failed attempts wait 10 and 20 seconds before retrying. After three attempts, an order can be retried from the workspace. Expired leases allow recovery after a worker interruption.
+
+The AWS implementation uses a separate serverless API and queue-backed generation path. See [AWS deployment](infra/aws/README.md) for configuration and operation.
+
+## Project structure
+
+```text
+careplan-project/
+├── backend/
+│   ├── careplan/           # Django configuration and URL routing
+│   ├── orders/             # API, models, validation, generation, worker, tests
+│   ├── shared/             # Intake adapters shared with Lambda
+│   ├── samples/            # Synthetic JSON and XML fixtures
+│   ├── manage.py
+│   └── requirements.txt
+├── frontend/
+│   ├── src/                # React workspace and styles
+│   └── package.json
+├── infra/
+│   └── aws/
+│       ├── lambda/         # Serverless API and generation handlers
+│       ├── terraform/      # Resources, IAM, queue, and monitoring
+│       └── tests/          # Handler tests
+├── scripts/                # Lambda packaging, benchmarking, DLQ replay
+├── docs/
+│   └── screenshots/        # Application screenshots
+└── README.md
+```
 
 ## Run locally
 
-Requires Python 3.12 or newer, Node.js 22.12 or newer, and pnpm.
+Requires Python 3.12+, Node.js 22.12+, and pnpm. Commands below use PowerShell from the repository root.
 
 ```powershell
 python -m venv .venv
-.venv/Scripts/python.exe -m pip install -r requirements.txt
-.venv/Scripts/python.exe manage.py migrate
+.venv/Scripts/python.exe -m pip install -r backend/requirements.txt
+.venv/Scripts/python.exe backend/manage.py migrate
 cd frontend
 pnpm install
 pnpm build
 cd ..
-.venv/Scripts/python.exe manage.py runserver 127.0.0.1:8000
+.venv/Scripts/python.exe backend/manage.py runserver 127.0.0.1:8000
 ```
 
-In a second terminal in the project directory:
+Start the worker in a second terminal from the repository root:
 
 ```powershell
-.venv/Scripts/python.exe manage.py worker
+.venv/Scripts/python.exe backend/manage.py worker
 ```
 
-Open http://127.0.0.1:8000. Click **Fill sample**, submit the order, then select it to preview and download the generated draft. Demo mode works without API credentials and generates a deterministic template from synthetic inputs. SQLite keeps jobs across restarts.
+Open [localhost:8000](http://127.0.0.1:8000). The default demo mode needs no API credentials. For frontend development, run `pnpm dev` in `frontend/`; Vite proxies API requests to Django.
 
-For frontend development, run `pnpm dev` in `frontend`. Vite proxies API requests to Django.
+### Claude configuration
 
-## Generation with Claude
-
-Set these environment variables in the worker terminal before starting the worker:
+Set the following in the worker terminal before starting it:
 
 ```powershell
 $env:CAREPLAN_MODE = 'claude'
-$env:ANTHROPIC_API_KEY = '<your key>'
-$env:ANTHROPIC_MODEL = '<an available Claude model ID>'
-.venv/Scripts/python.exe manage.py worker
+$env:ANTHROPIC_API_KEY = '<your API key>'
+$env:ANTHROPIC_MODEL = '<available model ID>'
+.venv/Scripts/python.exe backend/manage.py worker
 ```
 
-Set CAREPLAN_MODE in the web terminal too so the interface shows the corresponding mode. Credentials stay on the backend. Keep keys out of version control. The application has no login or clinical deployment controls. Use fictional data in this local prototype. A generated draft requires pharmacist review.
+Set `CAREPLAN_MODE=claude` in the web terminal as well so the workspace displays the active mode. API credentials remain on the backend.
 
-## Validation and recovery
+## API
 
-MRNs contain six digits, NPIs contain ten digits, and diagnosis codes receive format validation. A database constraint blocks same-patient, same-medication orders on the same day. Existing patient identity differences and refills require confirmation. Provider NPIs are unique and a conflicting provider name is blocked.
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/health` | Active mode and CSRF bootstrap |
+| GET / POST | `/api/orders` | List or submit orders |
+| GET | `/api/orders/{id}` | Order status and draft |
+| POST | `/api/orders/{id}/retry` | Retry a failed order |
+| GET | `/api/orders/{id}/download` | Download the draft as text |
+| GET | `/api/orders/export` | Export order history as CSV |
 
-The worker claims jobs with an atomic conditional update and a three-minute lease. Failed attempts are delayed 10 and 20 seconds. After three attempts the order becomes failed and can be explicitly retried. An interrupted worker's lease expires so another worker can reclaim it. The local queue uses SQLite and is intended for a single-machine demonstration.
+Submission supports `?source=web_form`, `?source=clinic_json`, and `?source=pharma_xml`. Example payloads are in [backend/samples](backend/samples). Mutating browser requests require a CSRF token.
 
-CSV export includes the most recent and historical orders. Spreadsheet formula prefixes are escaped. Plans download as text.
-
-## Checks
+## Validation
 
 ```powershell
-.venv/Scripts/python.exe manage.py test
-.venv/Scripts/python.exe manage.py check
+.venv/Scripts/python.exe backend/manage.py test orders
+.venv/Scripts/python.exe backend/manage.py check
+.venv/Scripts/python.exe -m pip install -r infra/aws/requirements.txt
+.venv/Scripts/python.exe -m unittest discover -s infra/aws/tests -v
 cd frontend
 pnpm build
 ```
 
-The tests cover successful generation and download, validation, duplicate handling, provider conflicts, warning confirmation, failed generation and retry, and CSRF enforcement.
+Tests cover generation and download, input validation, duplicates, provider conflicts, warning confirmation, failure and retry, CSRF enforcement, and queue redelivery behavior.
 
-## Project scope
+## Usage scope
 
-The original design draft is retained in design_doc.md. The local UI keeps a single intake screen; the API also accepts clinic JSON and pharmacy XML through shared adapters. See aws/README.md for Terraform deployment, IAM verification, and DLQ replay. Patient records are entered as text. Authentication, PDF parsing, and external registries remain future integration work. The draft's client background is historical design context and does not establish a deployment or affiliation.
+The local configuration is for a single-machine demonstration with fictional data. Generated drafts require pharmacist review. Authentication, clinical deployment controls, PDF parsing, and external registry integrations are not included.

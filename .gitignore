@@ -5,8 +5,8 @@ __pycache__/
 .env
 frontend/node_modules/
 frontend/dist/
-aws/package/
-aws/infra/.terraform/
+infra/aws/package/
+infra/aws/terraform/.terraform/
 *.tfstate*
 *.tfplan
 *.tfvars

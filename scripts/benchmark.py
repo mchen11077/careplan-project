@@ -12,7 +12,7 @@ parser.add_argument("--aws", action="store_true")
 parser.add_argument("--timeout", type=int, default=240)
 args = parser.parse_args()
 base = args.url.rstrip("/")
-payload = json.loads((Path(__file__).resolve().parents[1] / "samples" / "web_form.json").read_text())
+payload = json.loads((Path(__file__).resolve().parents[1] / "backend" / "samples" / "web_form.json").read_text())
 payload["patient_mrn"] = str(100000 + uuid.uuid4().int % 900000)
 headers = {"Content-Type": "application/json"}
 if not args.aws:

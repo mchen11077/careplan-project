@@ -117,7 +117,7 @@ def export(request):
 
 @require_GET
 def frontend(request, path=""):
-    root = settings.BASE_DIR / "frontend" / "dist"
+    root = settings.BASE_DIR.parent / "frontend" / "dist"
     target = (root / path).resolve()
     if not target.is_relative_to(root.resolve()):
         return HttpResponse(status=404)

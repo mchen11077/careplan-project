@@ -69,7 +69,7 @@ function App() {
 
   function sample() {
     setWarnings([]);
-    setForm({...empty, patient_first_name:'Alex', patient_last_name:'Example', patient_mrn:String(Math.floor(100000+Math.random()*900000)), patient_date_of_birth:'1990-01-01', primary_diagnosis_code:'Z00.00', medication_name:'Example medication', provider_name:'Demo Provider', provider_npi:'0000000000', patient_records:'Synthetic fixture for a portfolio demonstration.'});
+    setForm({...empty, patient_first_name:'Alex', patient_last_name:'Example', patient_mrn:String(Math.floor(100000+Math.random()*900000)), patient_date_of_birth:'1990-01-01', primary_diagnosis_code:'Z00.00', medication_name:'Example medication', provider_name:'Demo Provider', provider_npi:'0000000000', patient_records:'Synthetic sample order for workflow demonstration.'});
   }
 
   return <div className="workspace">
@@ -98,7 +98,7 @@ function App() {
           </div>}
         </section>
       </div>
-    </main><footer>Portfolio prototype · Drafts require pharmacist review</footer>
+    </main><footer>Careplan · Drafts require pharmacist review</footer>
   </div>;
 }
 createRoot(document.getElementById('root')!).render(<App />);
