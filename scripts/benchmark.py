@@ -1,4 +1,4 @@
-"""Measure a synthetic submission and poll to completion; never substitutes fixed timings."""
+"""Submit a sample order and measure submission and completion times."""
 import argparse
 import json
 import time

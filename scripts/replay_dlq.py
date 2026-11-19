@@ -1,4 +1,4 @@
-"""Replay one failed synthetic order; delete its DLQ message only after completion."""
+"""Replay a failed order and remove its DLQ message after completion."""
 import argparse
 import json
 import time

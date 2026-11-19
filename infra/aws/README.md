@@ -1,6 +1,6 @@
 # AWS deployment
 
-The serverless implementation accepts structured orders through API Gateway, stores them in DynamoDB, and processes generation through SQS and Lambda.
+API Gateway routes order submissions to Lambda. Orders are stored in DynamoDB, and SQS queues generation jobs for a separate Lambda worker.
 
 ```mermaid
 flowchart LR
@@ -15,7 +15,7 @@ flowchart LR
     DLQ --> Alarm[CloudWatch alarm]
 ```
 
-The React workspace currently uses the Django API. The AWS API is a separate deployment; `scripts/benchmark.py --aws` can exercise its submission and status endpoints.
+The React app connects to Django. To submit orders directly to the AWS API and measure completion time, use `scripts/benchmark.py --aws --url YOUR_API_URL`.
 
 ## Prerequisites
 
@@ -45,11 +45,11 @@ The account guard restricts deployment to the configured account. Deployment cre
 
 ## Intake
 
-`POST /orders?source=web_form` accepts flat JSON; `clinic_json` accepts nested JSON; `pharma_xml` accepts XML. Fixtures live in `backend/samples/`. The package script includes the shared adapters from `backend/shared/`, keeping the local and serverless intake contracts consistent.
+`POST /orders?source=web_form` accepts flat JSON; `clinic_json` accepts nested JSON; `pharma_xml` accepts XML. Example requests are in `backend/samples/`. The Lambda package includes the same adapters used by Django in `backend/shared/`.
 
 `GET /orders/{id}` returns order status and the generated draft.
 
-## Reliability and access
+## Queue processing
 
 - A DynamoDB transaction records the order and same-day duplicate guard.
 - SQS delivers jobs to the generation worker; failed attempts use 10- and 20-second delays before final failure and dead-letter handling.
@@ -66,7 +66,7 @@ Get-Content probe-result.json
 
 ## Recovery
 
-After resolving the generation failure, replay a specific order from the dead-letter queue:
+Fix the cause of the failure, then replay the order from the dead-letter queue:
 
 ```powershell
 .venv/Scripts/python.exe scripts/replay_dlq.py --order-id YOUR_ORDER_ID --dlq-url YOUR_DLQ_URL --queue-url YOUR_QUEUE_URL --table careplan-orders

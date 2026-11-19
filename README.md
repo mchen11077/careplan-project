@@ -1,27 +1,20 @@
 # Careplan
 
-An asynchronous care-plan drafting application with structured order intake, background generation, and a review workspace.
+Careplan accepts medication orders, generates care-plan drafts in a background worker, and provides a web interface for review and download.
 
 **React · TypeScript · Django · Python · SQLite · AWS Lambda · DynamoDB · SQS · Terraform**
 
-## Demo
+## Application
 
-Submit an order, follow its status, preview the generated draft, and download it for pharmacist review. The screenshot below shows the running application with fictional data and the built-in template generator.
+Order intake and draft review. This example uses sample data and the local template generator.
 
 ![Order intake and completed care-plan draft](docs/screenshots/draft-preview.jpg)
 
-1. Select **Fill sample** to populate a fictional order.
-2. Select **Generate draft**. The background worker processes the order while the workspace tracks its status.
-3. Open the completed order to review and download the draft. Use **Export orders** for CSV export.
+The form validates patient identifiers, diagnosis codes, and provider details before saving an order. Duplicate orders are blocked; changes to an existing patient's details and refills require confirmation.
 
-## Features
+Submitted orders appear in the order list with their generation status. Completed drafts can be previewed and downloaded as text. Order history can be exported as CSV.
 
-- Structured patient, medication, diagnosis, and provider intake with field validation.
-- Same-day duplicate prevention, provider-conflict detection, and confirmation for patient identity differences or refills.
-- Durable background jobs with worker leases, delayed retries, and explicit retry after failure.
-- Order history, status polling, draft preview, text download, and CSV export.
-- Shared adapters for web-form JSON, clinic JSON, and pharmacy XML.
-- AWS implementation with API Gateway, Lambda, DynamoDB, SQS, a dead-letter queue, and CloudWatch alarms.
+The API accepts web-form JSON, clinic JSON, and pharmacy XML through a shared adapter layer.
 
 ## Architecture
 
@@ -35,34 +28,9 @@ flowchart LR
     API --> UI
 ```
 
-The local application serves the built frontend through Django. Orders and jobs persist in SQLite; a separate worker claims jobs atomically with a three-minute lease. Failed attempts wait 10 and 20 seconds before retrying. After three attempts, an order can be retried from the workspace. Expired leases allow recovery after a worker interruption.
+Django serves the React build and stores orders and jobs in SQLite. A separate worker claims each job with a three-minute lease. Failed jobs retry after 10 and 20 seconds; after the third failure, the user can retry from the order list. Jobs with expired leases can be picked up by another worker.
 
-The AWS implementation uses a separate serverless API and queue-backed generation path. See [AWS deployment](infra/aws/README.md) for configuration and operation.
-
-## Project structure
-
-```text
-careplan-project/
-├── backend/
-│   ├── careplan/           # Django configuration and URL routing
-│   ├── orders/             # API, models, validation, generation, worker, tests
-│   ├── shared/             # Intake adapters shared with Lambda
-│   ├── samples/            # Synthetic JSON and XML fixtures
-│   ├── manage.py
-│   └── requirements.txt
-├── frontend/
-│   ├── src/                # React workspace and styles
-│   └── package.json
-├── infra/
-│   └── aws/
-│       ├── lambda/         # Serverless API and generation handlers
-│       ├── terraform/      # Resources, IAM, queue, and monitoring
-│       └── tests/          # Handler tests
-├── scripts/                # Lambda packaging, benchmarking, DLQ replay
-├── docs/
-│   └── screenshots/        # Application screenshots
-└── README.md
-```
+The AWS backend uses API Gateway, Lambda, DynamoDB, and SQS. It is deployed separately from the Django app. See [AWS deployment](infra/aws/README.md).
 
 ## Run locally
 
@@ -85,7 +53,9 @@ Start the worker in a second terminal from the repository root:
 .venv/Scripts/python.exe backend/manage.py worker
 ```
 
-Open [localhost:8000](http://127.0.0.1:8000). The default demo mode needs no API credentials. For frontend development, run `pnpm dev` in `frontend/`; Vite proxies API requests to Django.
+Open [localhost:8000](http://127.0.0.1:8000) and select **Fill sample**, then **Generate draft**. The default mode uses a local template and does not require an API key.
+
+For frontend development, run `pnpm dev` in `frontend/`. Vite proxies API requests to Django.
 
 ### Claude configuration
 
@@ -98,7 +68,7 @@ $env:ANTHROPIC_MODEL = '<available model ID>'
 .venv/Scripts/python.exe backend/manage.py worker
 ```
 
-Set `CAREPLAN_MODE=claude` in the web terminal as well so the workspace displays the active mode. API credentials remain on the backend.
+Also set `CAREPLAN_MODE=claude` in the Django terminal. Only the worker needs the API key.
 
 ## API
 
@@ -113,7 +83,7 @@ Set `CAREPLAN_MODE=claude` in the web terminal as well so the workspace displays
 
 Submission supports `?source=web_form`, `?source=clinic_json`, and `?source=pharma_xml`. Example payloads are in [backend/samples](backend/samples). Mutating browser requests require a CSRF token.
 
-## Validation
+## Tests
 
 ```powershell
 .venv/Scripts/python.exe backend/manage.py test orders
@@ -126,6 +96,6 @@ pnpm build
 
 Tests cover generation and download, input validation, duplicates, provider conflicts, warning confirmation, failure and retry, CSRF enforcement, and queue redelivery behavior.
 
-## Usage scope
+## Limitations
 
-The local configuration is for a single-machine demonstration with fictional data. Generated drafts require pharmacist review. Authentication, clinical deployment controls, PDF parsing, and external registry integrations are not included.
+The SQLite worker runs on a single machine. The app has no authentication; use sample data when running it locally. Drafts require pharmacist review. PDF parsing and external registry lookups are not implemented.
